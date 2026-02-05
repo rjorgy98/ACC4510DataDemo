@@ -10,6 +10,12 @@ Running the analysis script generates an `outputs/` folder with:
 - `date_summary.csv`: detected date ranges (if any).
 - `numeric_stats.csv`: descriptive statistics for numeric columns (if any).
 
+Running the visual report workflow generates a `report_outputs/` folder with:
+- `report.md`: a markdown report with embedded visuals.
+- `missing_values.png`: bar chart of missing values by column.
+- `numeric_distribution.png`: histogram of the main numeric field.
+- `benford_analysis.png`: Benford's Law comparison chart.
+
 ## Running locally
 ```bash
 python -m venv .venv
@@ -18,5 +24,12 @@ pip install -r requirements.txt
 python scripts/analyze_je_samples.py --input je_samples.xlsx --output outputs
 ```
 
+To build the visual report with Benford's Law analysis:
+```bash
+python scripts/build_je_report.py --input je_samples.xlsx --output report_outputs
+```
+
 ## GitHub Actions
 A workflow runs the same analysis on each push or manual trigger and uploads the `outputs/` folder as a downloadable artifact.
+
+A second workflow generates the visual report with Benford's Law analysis and uploads the `report_outputs/` folder.
