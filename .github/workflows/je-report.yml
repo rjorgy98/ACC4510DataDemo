@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Build report
-        run: python scripts/build_je_report.py --input je_samples.xlsx --output report_outputs
+        run: python scripts/build_je_report.py --input je_samples.xlsx --output report_outputs --column-name Amount --column-letter O
       - name: Upload report outputs
         uses: actions/upload-artifact@v4
         with:

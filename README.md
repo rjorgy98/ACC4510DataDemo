@@ -24,9 +24,9 @@ pip install -r requirements.txt
 python scripts/analyze_je_samples.py --input je_samples.xlsx --output outputs
 ```
 
-To build the visual report with Benford's Law analysis:
+To build the visual report with Benford's Law analysis (using the Amount column in Excel column O):
 ```bash
-python scripts/build_je_report.py --input je_samples.xlsx --output report_outputs
+python scripts/build_je_report.py --input je_samples.xlsx --output report_outputs --column-name Amount --column-letter O
 ```
 
 ## GitHub Actions

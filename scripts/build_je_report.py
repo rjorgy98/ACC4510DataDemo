@@ -11,20 +11,24 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-def pick_benford_series(df: pd.DataFrame) -> tuple[str, pd.Series] | tuple[None, pd.Series]:
-    numeric_columns = df.select_dtypes(include="number")
-    best_column = None
-    best_series = pd.Series(dtype=float)
-    best_count = 0
-    for column in numeric_columns.columns:
-        series = numeric_columns[column].dropna().astype(float).abs()
-        series = series[series >= 1]
-        count = int(series.shape[0])
-        if count > best_count:
-            best_column = column
-            best_series = series
-            best_count = count
-    return best_column, best_series
+def resolve_amount_column(df: pd.DataFrame, column_name: str | None, column_letter: str | None) -> str:
+    if column_name:
+        if column_name in df.columns:
+            return column_name
+        for col in df.columns:
+            if str(col).strip().lower() == column_name.strip().lower():
+                return col
+
+    if column_letter:
+        letter = column_letter.strip().upper()
+        if len(letter) == 1 and letter.isalpha():
+            index = ord(letter) - ord("A")
+            if 0 <= index < len(df.columns):
+                return str(df.columns[index])
+
+    raise SystemExit(
+        f"Could not find amount column. Column name '{column_name}' or column letter '{column_letter}' not found."
+    )
 
 
 def first_digit(value: float) -> int | None:
@@ -103,7 +107,7 @@ def plot_benford(benford_df: pd.DataFrame, output_path: Path, column: str) -> bo
     return True
 
 
-def build_report(df: pd.DataFrame, output_dir: Path) -> None:
+def build_report(df: pd.DataFrame, output_dir: Path, amount_column: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     missing_plot_path = output_dir / "missing_values.png"
@@ -112,11 +116,13 @@ def build_report(df: pd.DataFrame, output_dir: Path) -> None:
 
     has_missing_plot = plot_missing_values(df, missing_plot_path)
 
-    column, series = pick_benford_series(df)
+    column = amount_column
+    series = pd.to_numeric(df[column], errors="coerce").dropna().astype(float).abs()
+    series = series[series >= 1]
     has_numeric_plot = False
     benford_df = pd.DataFrame()
     has_benford_plot = False
-    if column is not None:
+    if not series.empty:
         has_numeric_plot = plot_numeric_distribution(series, column, numeric_plot_path)
         benford_df = compute_benford_distribution(series)
         has_benford_plot = plot_benford(benford_df, benford_plot_path, column)
@@ -147,14 +153,14 @@ def build_report(df: pd.DataFrame, output_dir: Path) -> None:
     else:
         report_lines.append("- Missing values plot not generated (no missing values detected).")
 
-    if has_numeric_plot and column is not None:
+    if has_numeric_plot:
         report_lines.extend(
             ["### Numeric Distribution", "", f"![Numeric distribution plot]({numeric_plot_path.name})", ""]
         )
     else:
         report_lines.append("- Numeric distribution plot not generated (no numeric data detected).")
 
-    if has_benford_plot and column is not None:
+    if has_benford_plot:
         report_lines.extend(
             ["### Benford's Law Analysis", "", f"![Benford analysis plot]({benford_plot_path.name})", ""]
         )
@@ -173,6 +179,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate a JE visual report with Benford analysis.")
     parser.add_argument("--input", default="je_samples.xlsx", help="Path to Excel file")
     parser.add_argument("--output", default="report_outputs", help="Output directory")
+    parser.add_argument(
+        "--column-name",
+        default="Amount",
+        help="Name of the amount column to analyze (defaults to Amount).",
+    )
+    parser.add_argument(
+        "--column-letter",
+        default="O",
+        help="Excel column letter for the amount field (defaults to O).",
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -180,7 +196,8 @@ def main() -> None:
         raise SystemExit(f"Input file not found: {input_path}")
 
     df = pd.read_excel(input_path)
-    build_report(df, Path(args.output))
+    amount_column = resolve_amount_column(df, args.column_name, args.column_letter)
+    build_report(df, Path(args.output), amount_column)
 
 
 if __name__ == "__main__":
